@@ -44,18 +44,18 @@ struct error_reporter
 
 struct error_domain_singleton
 {
-    constexpr bool (*do_equivalent)(::std::error) noexcept;
-    constexpr void (*do_name)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept;
-    constexpr void (*do_message)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept;
-    constexpr ::std::errc (*do_to_errc)(std::error) noexcept;
-    constexpr void (*do_throw_dynamic_exception)(::std::error, ::std::dynamic_exception_abi) noexcept;
+    bool (*do_equivalent)(::std::error) noexcept = 0;
+    void (*do_name)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept = 0;
+    void (*do_message)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept = 0;
+    ::std::errc (*do_to_errc)(std::error) noexcept = 0;
+    void (*do_throw_dynamic_exception)(::std::error, ::std::dynamic_exception_abi) noexcept = 0;
 };
 
-namespace error_domain
+namespace error_domains
 {
-extern "C" void* __error_domain_win32() noexcept;
-extern "C" void* __error_domain_posix() noexcept;
-extern "C" void* __error_domain_nt() noexcept;
+extern "C" ::std::error_domain_singleton* __error_domain_win32() noexcept;
+extern "C" ::std::error_domain_singleton* __error_domain_posix() noexcept;
+extern "C" ::std::error_domain_singleton* __error_domain_nt() noexcept;
 }
 
 template<typename T>
@@ -72,9 +72,9 @@ template<>
 struct error_domain<::std::win32_errc>
 {
     using errc_type = ::std::win32_errc;
-    constexpr void* domain() noexcept
+    constexpr ::std::error_domain_singleton* domain() noexcept
     {
-        return ::std::error_domain::__error_domain_win32();
+        return ::std::error_domains::__error_domain_win32();
     }
     constexpr ::std::size_t code(errc_type e) noexcept
     {
@@ -86,7 +86,7 @@ template<typename T>
 requires (::std::is_enum_v<T>)
 constexpr bool operator==(::std::error e, T t) noexcept
 {
-    using error_type = ::std::error_domain<decltype(x)>::error_type;
+    using error_type = typename ::std::error_domain<T>::error_type;
     return error_type::code(t) == e.code_opaque &&
         error_type::domain() == e.domain_opaque;
 }
