@@ -11,10 +11,35 @@ constinit error_domain_singleton __win32_error_domain
     {
         return __win32_error_domain.do_to_errc(cd) == otherdomain->do_to_errc(othercd);
     },
-    .do_name=[](::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept
+    .do_name=[](::std::size_t, ::std::char_type_flag chtypeflag, void* cookie, ::std::error_reporter_io_cookie_function cookfun) noexcept
     {
+        ::std::io_scatter_t v;
+        switch(chtypeflag)
+        {
+        case ::std::char_type_flag::flag_char16_t:
+        {
+            v.base=u"win32";
+            v.len=5*sizeof(char16_t);
+        }
+        case ::std::char_type_flag::flag_char32_t:
+        {
+            v.base=U"win32";
+            v.len=5*sizeof(char32_t);
+        }
+        case ::std::char_type_flag::flag_wchar_t:
+        {
+            v.base=L"win32";
+            v.len=5*sizeof(wchar_t);
+        }
+        default:
+        {
+            v.base=u8"win32";
+            v.len=5;
+        }
+        }
+        cookfun(chtypeflag, cookie,__builtin_addressof(v),1u);
     },
-    .do_message=[](::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept
+    .do_message=[](::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept
     {
     },
     .do_to_errc=[](::std::size_t cd) noexcept

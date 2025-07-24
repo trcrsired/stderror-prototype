@@ -9,6 +9,7 @@ namespace std
 
 struct error;
 
+#if 0
 enum class dynamic_exception_abi
 {
 itanium=0,
@@ -19,31 +20,28 @@ platform=microsoft
 platform=itanium
 #endif
 };
-
+#endif
 struct io_scatter_t
 {
     void const* base;
     ::std::size_t len;
 };
-
-struct error_reporter
+enum class char_type_flag
 {
-    enum class char_type_flag
-    {
-        flag_char,
-        flag_wchar_t,
-        flag_char8_t,
-        flag_char16_t,
-        flag_char32_t
-    };
-    virtual void scatter_write(char_type_flag flag, void*, ::std::io_scatter_t const* vecs, ::std::size_t n) noexcept;
+    flag_char,
+    flag_wchar_t,
+    flag_char8_t,
+    flag_char16_t,
+    flag_char32_t
 };
+
+using error_reporter_io_cookie_function = void (*)(char_type_flag, void*, ::std::io_scatter_t const* , ::std::size_t) noexcept;
 
 struct error_domain_singleton
 {
     bool (*do_equivalent)(::std::size_t, error_domain_singleton const*, ::std::size_t) noexcept = 0;
-    void (*do_name)(::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept = 0;
-    void (*do_message)(::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept = 0;
+    void (*do_name)(::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
+    void (*do_message)(::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
     ::std::errc (*do_to_errc)(::std::size_t) noexcept = 0;
 #if 0
 // allow old style EH is a bad idea
