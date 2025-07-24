@@ -1,6 +1,7 @@
 #include"error.h"
 #include"pesudo_throws.h"
 #include<cstdio>
+#include<cstring>
 
 int main()
 {
