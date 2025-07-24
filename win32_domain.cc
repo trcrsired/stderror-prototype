@@ -17,14 +17,14 @@ constinit error_domain_singleton __win32_error_domain
     .do_message=[](::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept
     {
     },
-    .do_to_errc=[](::std::size_t cd) noexcept ->
+    .do_to_errc=[](::std::size_t cd) noexcept
     {
         switch(static_cast<::std::win32_errc>(static_cast<::std::uint_least32_t>(cd)))
         {
         case ::std::win32_errc::success: 
-            return ::std::errc{};
+            return static_cast<::std::errc>(0);
         case ::std::win32_errc::invalid_function:
-            return ::std::errc{EINVAL};
+            return ::std::errc::invalid_argument;
         case ::std::win32_errc::file_not_found:
             return ::std::errc::no_such_file_or_directory;
         };
@@ -42,8 +42,9 @@ constinit error_domain_singleton __win32_error_domain
 };
 }
 
+extern "C"
 [[__gnu__::__weak__]]
-extern "C" ::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept
+::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept
 {
     return __builtin_addressof(::std::error_domains::__win32_error_domain);
 }
