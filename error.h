@@ -79,9 +79,18 @@ struct error
 
 namespace error_domains
 {
-extern "C" ::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept;
-extern "C" ::std::error_domain_singleton const* __cxa_error_domain_posix() noexcept;
-extern "C" ::std::error_domain_singleton const* __cxa_error_domain_nt() noexcept;
+extern "C"
+[[__gnu__::__const__]]
+::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept;
+
+extern "C"
+[[__gnu__::__const__]]
+::std::error_domain_singleton const* __cxa_error_domain_posix() noexcept;
+
+
+extern "C"
+[[__gnu__::__const__]]
+::std::error_domain_singleton const* __cxa_error_domain_nt() noexcept;
 }
 
 
