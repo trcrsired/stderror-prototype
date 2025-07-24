@@ -113,7 +113,7 @@ template<typename T>
 requires (::std::is_enum_v<T>)
 constexpr bool operator==(::std::error e, T t) noexcept
 {
-    using error_type = typename ::std::error_domain<T>::error_type;
+    using error_type = typename ::std::error_domain<T>;
     return error_type::code(t) == e.code_opaque &&
         error_type::domain() == e.domain_opaque;
 }

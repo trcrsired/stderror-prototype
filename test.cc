@@ -11,6 +11,8 @@ int main()
     }
     catch(::std::error e)
     {
-        fprintf(stderr,"%s\n",strerror(static_cast<int>(e.do_to_errc())));
+        fprintf(stderr,"%d\n%s\n",
+                e==::std::win32_errc::file_not_found,
+                strerror(static_cast<int>(e.do_to_errc())));
     }
 }
