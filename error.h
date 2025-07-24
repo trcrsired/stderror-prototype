@@ -44,37 +44,42 @@ struct error_reporter
 
 struct error_domain_singleton
 {
-    bool (*do_equivalent)(::std::error) noexcept = 0;
-    void (*do_name)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept = 0;
-    void (*do_message)(std::error, ::std::error_reporter::char_type_flag, ::std::error_reporter&) noexcept = 0;
-    ::std::errc (*do_to_errc)(std::error) noexcept = 0;
-    void (*do_throw_dynamic_exception)(::std::error, ::std::dynamic_exception_abi) noexcept = 0;
+    bool (*do_equivalent)(::std::size_t, error_domain_singleton const*, ::std::size_t) noexcept = 0;
+    void (*do_name)(::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept = 0;
+    void (*do_message)(::std::size_t, ::std::error_reporter::char_type_flag, ::std::error_reporter*) noexcept = 0;
+    ::std::errc (*do_to_errc)(::std::size_t) noexcept = 0;
+#if 0
+// allow old style EH is a bad idea
+    void (*do_throw_dynamic_exception)(::std::size_t, ::std::dynamic_exception_abi) = 0;
+#endif
 };
 
 namespace error_domains
 {
-extern "C" ::std::error_domain_singleton* __error_domain_win32() noexcept;
-extern "C" ::std::error_domain_singleton* __error_domain_posix() noexcept;
-extern "C" ::std::error_domain_singleton* __error_domain_nt() noexcept;
+extern "C" ::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept;
+extern "C" ::std::error_domain_singleton const* __cxa_error_domain_posix() noexcept;
+extern "C" ::std::error_domain_singleton const* __cxa_error_domain_nt() noexcept;
 }
 
 template<typename T>
 requires (::std::is_enum_v<T>)
 class error_domain;
 
-
 enum class win32_errc :
     ::std::uint_least32_t
 {
+    success=0,
+    invalid_function=1,
+    file_not_found=2
 };
 
 template<>
 struct error_domain<::std::win32_errc>
 {
     using errc_type = ::std::win32_errc;
-    constexpr ::std::error_domain_singleton* domain() noexcept
+    ::std::error_domain_singleton const* domain() noexcept
     {
-        return ::std::error_domains::__error_domain_win32();
+        return ::std::error_domains::__cxa_error_domain_win32();
     }
     constexpr ::std::size_t code(errc_type e) noexcept
     {
