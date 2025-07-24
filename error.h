@@ -2,15 +2,12 @@
 #include<type_traits>
 #include<cstddef>
 #include<system_error>
+#include<cstdint>
 
 namespace std
 {
 
-struct error
-{
-    void *domain_opaque{};
-    ::std::size_t code_opaque{};
-};
+struct error;
 
 enum class dynamic_exception_abi
 {
@@ -54,6 +51,34 @@ struct error_domain_singleton
 #endif
 };
 
+template<typename T>
+requires (::std::is_enum_v<T>)
+struct error_domain;
+
+struct error
+{
+    ::std::error_domain_singleton const* domain_opaque{};
+    ::std::size_t code_opaque{};
+    template<typename T>
+    constexpr bool do_equivalent(T ec) noexcept
+    {
+        using other_error_domain_type = ::std::error_domain<T>;
+        return domain_opaque->do_equivalent(code_opaque, other_error_domain_type::domain(), ec);
+    }
+    constexpr ::std::errc do_to_errc() noexcept
+    {
+        return domain_opaque->do_to_errc(code_opaque);
+    }
+    constexpr void do_throw_dynamic_exception()
+    {
+#if defined(__cpp_exceptions)
+        throw ::std::system_error(static_cast<int>(this->do_to_errc()),::std::generic_category());
+#else
+        ::std::abort();
+#endif
+    }
+};
+
 namespace error_domains
 {
 extern "C" ::std::error_domain_singleton const* __cxa_error_domain_win32() noexcept;
@@ -61,9 +86,6 @@ extern "C" ::std::error_domain_singleton const* __cxa_error_domain_posix() noexc
 extern "C" ::std::error_domain_singleton const* __cxa_error_domain_nt() noexcept;
 }
 
-template<typename T>
-requires (::std::is_enum_v<T>)
-class error_domain;
 
 enum class win32_errc :
     ::std::uint_least32_t
@@ -77,11 +99,11 @@ template<>
 struct error_domain<::std::win32_errc>
 {
     using errc_type = ::std::win32_errc;
-    ::std::error_domain_singleton const* domain() noexcept
+    static inline constexpr ::std::error_domain_singleton const* domain() noexcept
     {
         return ::std::error_domains::__cxa_error_domain_win32();
     }
-    constexpr ::std::size_t code(errc_type e) noexcept
+    static inline constexpr ::std::size_t code(errc_type e) noexcept
     {
         return static_cast<::std::size_t>(static_cast<::std::uint_least32_t>(e));
     }
