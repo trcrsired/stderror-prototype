@@ -27,7 +27,9 @@ constinit error_domain_singleton __win32_error_domain
             return ::std::errc::invalid_argument;
         case ::std::win32_errc::file_not_found:
             return ::std::errc::no_such_file_or_directory;
-        };
+        default:
+            return ::std::errc::invalid_argument;
+        }
     }
 #if 0
     .do_throw_dynamic_exception=[](::std::size_t cd, ::std::dynamic_exception_abi)
