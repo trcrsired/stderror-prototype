@@ -1,5 +1,6 @@
 #include"error.h"
 #include"pesudo_throws.h"
+#include<cstdio>
 
 int main()
 {
@@ -9,6 +10,6 @@ int main()
     }
     catch(::std::error e)
     {
-        
+        fprintf(stderr,"%s\n",strerror(static_cast<int>(e.do_to_errc())));
     }
 }
