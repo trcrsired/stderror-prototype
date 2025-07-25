@@ -26,22 +26,22 @@ struct io_scatter_t
     void const* base;
     ::std::size_t len;
 };
-enum class char_type_flag
+enum class error_reporter_encoding
 {
-    flag_char,
-    flag_wchar_t,
-    flag_char8_t,
-    flag_char16_t,
-    flag_char32_t
+utf8,
+utf16,
+utf32,
+gb18030,
+utfebcdic
 };
 
-using error_reporter_io_cookie_function = void (*)(char_type_flag, void*, ::std::io_scatter_t const* , ::std::size_t) noexcept;
+using error_reporter_io_cookie_function = void (*)(::std::error_reporter_encoding, void*, ::std::io_scatter_t const* , ::std::size_t) noexcept;
 
 struct error_domain_singleton
 {
     bool (*do_equivalent)(::std::size_t, error_domain_singleton const*, ::std::size_t) noexcept = 0;
-    void (*do_name)(::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
-    void (*do_message)(::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
+    void (*do_name)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
+    void (*do_message)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
     ::std::errc (*do_to_errc)(::std::size_t) noexcept = 0;
 #if 0
 // allow old style EH is a bad idea

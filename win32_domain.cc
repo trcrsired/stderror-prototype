@@ -11,25 +11,25 @@ constinit error_domain_singleton __win32_error_domain
     {
         return __win32_error_domain.do_to_errc(cd) == otherdomain->do_to_errc(othercd);
     },
-    .do_name=[](::std::size_t, ::std::char_type_flag chtypeflag, void* cookie, ::std::error_reporter_io_cookie_function cookfun) noexcept
+    .do_name=[](::std::size_t, ::std::error_reporter_encoding encoding, void* cookie, ::std::error_reporter_io_cookie_function cookfun) noexcept
     {
         ::std::io_scatter_t v;
-        switch(chtypeflag)
+        switch(encoding)
         {
-        case ::std::char_type_flag::flag_char16_t:
+        case ::std::error_reporter_encoding::utf16:
         {
             v.base=u"win32";
             v.len=5*sizeof(char16_t);
         }
-        case ::std::char_type_flag::flag_char32_t:
+        case ::std::error_reporter_encoding::utf32:
         {
             v.base=U"win32";
             v.len=5*sizeof(char32_t);
         }
-        case ::std::char_type_flag::flag_wchar_t:
+        case ::std::error_reporter_encoding::utfebcdic:
         {
-            v.base=L"win32";
-            v.len=5*sizeof(wchar_t);
+            v.base="\xA6\x89\x95\xF3\xF2";
+            v.len=5;
         }
         default:
         {
@@ -37,9 +37,9 @@ constinit error_domain_singleton __win32_error_domain
             v.len=5;
         }
         }
-        cookfun(chtypeflag, cookie,__builtin_addressof(v),1u);
+        cookfun(encoding, cookie,__builtin_addressof(v),1u);
     },
-    .do_message=[](::std::size_t, ::std::char_type_flag, void*, ::std::error_reporter_io_cookie_function) noexcept
+    .do_message=[](::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept
     {
     },
     .do_to_errc=[](::std::size_t cd) noexcept
