@@ -120,6 +120,7 @@ private:
     ::std::error_domain_singleton const* domain_opaque{};
     ::std::size_t code_opaque{};
 
+    // a magic function compiler will know how to construct it
     explicit constexpr error(void const* domain, ::std::size_t code) noexcept
         : domain_opaque(static_cast<::std::error_domain_singleton const*>(domain)), code_opaque(code)
     {
