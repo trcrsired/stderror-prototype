@@ -73,7 +73,14 @@ public:
     error& operator=(error const&) = delete;
     error& operator=(error&&) = delete;
 
-    constexpr ~error() noexcept = default;
+    constexpr ~error() noexcept
+    {
+	    auto docleanup{domain->do_cleanup};
+	    if (docleanup)
+	    {
+		    docleanup(code);
+	    }
+    }
 
     [[nodiscard]] constexpr ::std::error_domain_singleton const* domain() const noexcept
     {
@@ -113,11 +120,8 @@ private:
     ::std::error_domain_singleton const* domain_opaque{};
     ::std::size_t code_opaque{};
 
-    // Compiler-only manufacturing path. No user code may reach this: in the
-    // real implementation the compiler fabricates the value without a
-    // constructor; the friend below is only the prototype's simulation.
-    constexpr error(::std::error_domain_singleton const* domain, ::std::size_t code) noexcept
-        : domain_opaque(domain), code_opaque(code)
+    explicit constexpr error(void const* domain, ::std::size_t code) noexcept
+        : domain_opaque(static_cast<::std::error_domain_singleton const*>(domain)), code_opaque(code)
     {
     }
 
