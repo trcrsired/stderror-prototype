@@ -1,5 +1,4 @@
 #include"error.h"
-#include"pesudo_throws.h"
 #include<cstdio>
 #include<cstring>
 
@@ -7,9 +6,9 @@ int main()
 {
     try
     {
-        pesudo_throws(::std::win32_errc::file_not_found);
+        throw throws ::std::win32_errc::file_not_found;
     }
-    catch(::std::error const& e)
+    catch throws(::std::error e)
     {
         fprintf(stderr,"%d\n%s\n",
                 e==::std::win32_errc::file_not_found,
