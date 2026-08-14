@@ -39,7 +39,7 @@ using error_reporter_io_cookie_function = void (*)(::std::error_reporter_encodin
 
 struct error_domain_singleton
 {
-    void (*do_cleanup)(::std::size_t) noexcept = nullptr;
+    void (*do_cleanup)(::std::size_t) noexcept = 0;
     bool (*do_equivalent)(::std::size_t, error_domain_singleton const*, ::std::size_t) noexcept = 0;
     void (*do_name)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
     void (*do_message)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
