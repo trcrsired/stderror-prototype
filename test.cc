@@ -9,7 +9,7 @@ int main()
     {
         pesudo_throws(::std::win32_errc::file_not_found);
     }
-    catch(::std::error e)
+    catch(::std::error const& e)
     {
         fprintf(stderr,"%d\n%s\n",
                 e==::std::win32_errc::file_not_found,

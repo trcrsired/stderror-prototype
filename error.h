@@ -4,6 +4,13 @@
 #include<system_error>
 #include<cstdint>
 
+// The prototype's stand-in for the compiler's synthetic `throw throws e`
+// construction. Only this function (the "compiler") may manufacture a
+// std::error; it is declared a friend of std::error below.
+template<typename T>
+requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+constexpr void pesudo_throws(T x);
+
 namespace std
 {
 
@@ -49,25 +56,55 @@ struct error_domain_singleton
 #endif
 };
 
+// The error_domain customization point. It is declared but not defined: only
+// specializations exist. T need not be an enum — any type with an
+// error_domain<T> specialization can be thrown via `throw throws`.
 template<typename T>
-requires (::std::is_enum_v<T>)
 struct error_domain;
 
+// std::error is defined by the standard library, but it is not a type users
+// can create, copy, or store. The compiler is the only manufacturer: for
+// `throw throws e;` it evaluates error_domain<T>::domain() and
+// error_domain<T>::code(e) and fabricates the {domain, code} value.
+// Consequently:
+//   - the default constructor is deleted;
+//   - copy/move constructors and assignments are all deleted;
+//   - there is only a destructor and helper methods;
+//   - all data members are private.
 struct error
 {
-    ::std::error_domain_singleton const* domain_opaque{};
-    ::std::size_t code_opaque{};
+    error() = delete;
+    error(error const&) = delete;
+    error(error&&) = delete;
+    error& operator=(error const&) = delete;
+    error& operator=(error&&) = delete;
+
+    ~error() noexcept = default;
+
+    [[nodiscard]] constexpr ::std::error_domain_singleton const* domain() const noexcept
+    {
+        return domain_opaque;
+    }
+    [[nodiscard]] constexpr ::std::size_t code() const noexcept
+    {
+        return code_opaque;
+    }
+
     template<typename T>
-    constexpr bool do_equivalent(T ec) noexcept
+    requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+    constexpr bool do_equivalent(T ec) const noexcept
     {
         using other_error_domain_type = ::std::error_domain<T>;
-        return domain_opaque->do_equivalent(code_opaque, other_error_domain_type::domain(), ec);
+        return domain_opaque->do_equivalent(
+            code_opaque,
+            other_error_domain_type::domain(),
+            other_error_domain_type::code(ec));
     }
-    constexpr ::std::errc do_to_errc() noexcept
+    constexpr ::std::errc do_to_errc() const noexcept
     {
         return domain_opaque->do_to_errc(code_opaque);
     }
-    constexpr void do_throw_dynamic_exception()
+    constexpr void do_throw_dynamic_exception() const
     {
 #if defined(__cpp_exceptions)
         throw ::std::system_error(static_cast<int>(this->do_to_errc()),::std::generic_category());
@@ -75,6 +112,24 @@ struct error
         ::std::abort();
 #endif
     }
+
+private:
+    // The {domain, code} payload, laid out as exactly two words so the value
+    // flows through the {void*, size_t} ABI slot unchanged.
+    ::std::error_domain_singleton const* domain_opaque{};
+    ::std::size_t code_opaque{};
+
+    // Compiler-only manufacturing path. No user code may reach this: in the
+    // real implementation the compiler fabricates the value without a
+    // constructor; the friend below is only the prototype's simulation.
+    constexpr error(::std::error_domain_singleton const* domain, ::std::size_t code) noexcept
+        : domain_opaque(domain), code_opaque(code)
+    {
+    }
+
+    template<typename T>
+    requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+    friend constexpr void ::pesudo_throws(T x);
 };
 
 namespace error_domains
@@ -117,31 +172,31 @@ struct error_domain<::std::win32_errc>
 };
 
 template<typename T>
-requires (::std::is_enum_v<T>)
-constexpr bool operator==(::std::error e, T t) noexcept
+requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+constexpr bool operator==(::std::error const& e, T t) noexcept
 {
     using error_type = typename ::std::error_domain<T>;
-    return error_type::code(t) == e.code_opaque &&
-        error_type::domain() == e.domain_opaque;
+    return error_type::code(t) == e.code() &&
+        error_type::domain() == e.domain();
 }
 
 template<typename T>
-requires (::std::is_enum_v<T>)
-constexpr bool operator==(T t, ::std::error e) noexcept
+requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+constexpr bool operator==(T t, ::std::error const& e) noexcept
 {
     return e==t;
 }
 
 template<typename T>
-requires (::std::is_enum_v<T>)
-constexpr bool operator!=(::std::error e, T t) noexcept
+requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+constexpr bool operator!=(::std::error const& e, T t) noexcept
 {
     return !(e==t);
 }
 
 template<typename T>
-requires (::std::is_enum_v<T>)
-constexpr bool operator!=(T t, ::std::error e) noexcept
+requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
+constexpr bool operator!=(T t, ::std::error const& e) noexcept
 {
     return !(e==t);
 }
