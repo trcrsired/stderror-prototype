@@ -187,18 +187,4 @@ constexpr bool operator==(T t, ::std::error const& e) noexcept
     return e==t;
 }
 
-template<typename T>
-requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
-constexpr bool operator!=(::std::error const& e, T t) noexcept
-{
-    return !(e==t);
-}
-
-template<typename T>
-requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
-constexpr bool operator!=(T t, ::std::error const& e) noexcept
-{
-    return !(e==t);
-}
-
 }
