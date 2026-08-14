@@ -2,6 +2,7 @@
 #include<cstdio>
 #include<cstring>
 
+// `throw throws` directly inside a plain function, caught by `catch throws`.
 int main()
 {
     try
