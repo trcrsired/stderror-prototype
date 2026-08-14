@@ -76,11 +76,11 @@ public:
 
     constexpr ~error() noexcept
     {
-	    auto docleanup{domain->do_cleanup};
-	    if (docleanup)
-	    {
-		    docleanup(code);
-	    }
+        auto docleanup{domain_opaque->do_cleanup};
+        if (docleanup)
+        {
+            docleanup(code_opaque);
+        }
     }
 
     [[nodiscard]] constexpr ::std::error_domain_singleton const* domain() const noexcept
