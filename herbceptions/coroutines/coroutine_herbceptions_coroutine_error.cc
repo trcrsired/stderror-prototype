@@ -2,11 +2,11 @@
 #include <exception>
 #include <iostream>
 #include "../error.h"
-
+#include "coroutine_error.h"
 
 struct Task {
     struct promise_type {
-        ::std::error_coroutine_carrier err;
+        ::std::coroutine_error err;
 
         Task get_return_object() {
             return Task{ std::coroutine_handle<promise_type>::from_promise(*this) };
@@ -17,7 +17,7 @@ struct Task {
 
         void return_void() {}
 
-        void unhandled_herbception(::std::error_coroutine_carrier e) noexcept {
+        void unhandled_herbception(::std::coroutine_error e) noexcept {
             std::cout << "promise_type::unhandled_exception() called\n";
             err = ::std::move(e);
         }
