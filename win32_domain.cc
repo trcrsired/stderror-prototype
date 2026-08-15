@@ -57,7 +57,7 @@ constinit error_domain_singleton __win32_error_domain
         }
     }
 #if 0
-    .do_throw_dynamic_exception=[](::std::size_t cd, ::std::dynamic_exception_abi)
+    .do_throw_legacy_exception=[](::std::size_t cd, ::std::legacy_exception_abi)
     {
 #if defined(__cpp_exceptions)
         throw ::std::system_error(__win32_error_domain.do_to_errc(cd), ::std::generic_category());
