@@ -40,6 +40,7 @@ check_ok test_rethrow_condition.cc      # throws(true)
 check_ok test_main.cc                   # main: unhandled -> __builtin_trap()
 check_ok test_pass_with_fails_eh.cc     # fails{E} interop into throws
 check_ok test_alias.cc                  # domain_alias_type alias mechanism
+check_ok test_alias_mixed.cc            # fails{E}->throws interop via alias
 check_ok test_alias_interop.cc          # fails{E}->throws interop via alias
 check_ok constexpr_alias.cc             # alias works under constexpr
 
