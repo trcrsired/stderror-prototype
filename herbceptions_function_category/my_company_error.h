@@ -6,7 +6,9 @@
 
 namespace my_company
 {
-
+/*
+we may have the same category but different enum class types
+*/
 enum class win32_errc :
     ::std::uint_least32_t
 {
