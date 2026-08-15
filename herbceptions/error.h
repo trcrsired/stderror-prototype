@@ -11,10 +11,9 @@ unfinished semantics
 namespace std
 {
 
-struct error;
+class error;
 
-#if 0
-enum class legacy_exception_abi
+enum class cxa_exception_abi
 {
 itanium=0,
 microsoft=1,
@@ -24,7 +23,7 @@ platform=microsoft
 platform=itanium
 #endif
 };
-#endif
+
 struct io_scatter_t
 {
     void const* base;
@@ -48,10 +47,9 @@ struct error_domain_singleton
     void (*do_name)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = nullptr;
     void (*do_message)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = nullptr;
     ::std::errc (*do_to_errc)(::std::size_t) noexcept = nullptr;
-#if 0
-// allow old style EH is a bad idea because of ABI plus bloated to every singleton table
-    void (*do_throw_dynamic_exception)(::std::size_t, ::std::legacy_exception_abi) = nullptr;
-#endif
+    void (*do_throw_cxa_exception)(::std::size_t, ::std::cxa_exception_abi) = nullptr;
+// reserve two fields for extensions
+    void* __reserved[2]{};
 };
 
 namespace __details
@@ -130,13 +128,21 @@ public:
         return __domain_opaque->do_to_errc(__code_opaque);
     }
 
-    void do_throw_legacy_exception() const
+    void do_throw_cxa_exception() const
 #if defined(__cpp_exceptions)
     {
+        auto __dothrowcxaexception{__domain_opaque->do_throw_cxa_exception};
+        if (__dothrowcxaexception)
+        {
+            // if the function returns then the EH was not thrown for whatever reason
+            // such as we are using an itanium that throws msvc eh
+            __dothrowcxaexception(static_cast<::std::size_t>(this->code()),::std::cxa_exception_abi::platform);
+        }
+        // EH thrown fail by the domain vtable. we throw a generic error by errc
         throw ::std::system_error(static_cast<int>(this->do_to_errc()),::std::generic_category());
     }
 #else
-    = delete; // legacy exception disabled
+    = delete; // cxa exception disabled
 #endif
 
 private:
@@ -233,6 +239,17 @@ requires (::std::is_class_v<__Other> || ::std::is_enum_v<__Other>)
 constexpr bool operator==(__Other const __other, ::std::error const& __e) noexcept
 {
     return __e==__other;
+}
+
+template<typename __Other>
+requires requires(::std::error e)
+{
+    {::std::error_domain<__Other>::from_std_error(e)}->std::same_as<__Other>
+}
+constexpr auto herbception_cast(::std::error const &e) noexcept
+{
+    using __other_error_domain_type = ::std::error_domain<__Other>;
+    return __other_error_domain_type::from_std_error(e);
 }
 
 }
