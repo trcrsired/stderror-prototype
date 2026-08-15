@@ -33,7 +33,8 @@ struct Task {
     }
 };
 
-inline Task foo() throws {
+inline Task foo() throws  //mark throws on coroutine means noexcept and will throws herbceptions. Promise_type will have unhandled_herbception not unhandled_exception.
+{
     std::cout << "foo(): to throw eh\n";
     throw throws ::std::errc::file_not_found;
     co_return;

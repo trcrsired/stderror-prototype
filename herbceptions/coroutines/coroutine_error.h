@@ -14,7 +14,7 @@ public:
     coroutine_error(coroutine_error const&) = delete;
     coroutine_error& operator=(coroutine_error const&) = delete;
     constexpr coroutine_error(coroutine_error&& __other) noexcept:
-        __domain_opaque{__other._domain_opaque},__code_opaque{__other.__code_opaque}
+        __domain_opaque{__other.__domain_opaque},__code_opaque{__other.__code_opaque}
     {
         __other.__domain_opaque = nullptr;
         __other.__code_opaque = 0;
