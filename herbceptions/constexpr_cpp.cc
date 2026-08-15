@@ -5,11 +5,14 @@ constexpr int f(int x) throws {
   return 2 * x;
 }
 
-constexpr int use_catch(int x) {
-  auto r = catch fails(f(x));
-  if (r.failed) return static_cast<int>(r.error.code());
-  return r.value;
+constexpr int use_try(int x) {
+  try {
+    return f(x);
+  } catch throws(::std::error e) {
+    return static_cast<int>(e.code());
+  }
 }
 
-static_assert(use_catch(3) == 6, "success");
+static_assert(use_try(3) == 6, "success");
+static_assert(use_try(0) == 2, "failure");
 int main(){ return 0; }
