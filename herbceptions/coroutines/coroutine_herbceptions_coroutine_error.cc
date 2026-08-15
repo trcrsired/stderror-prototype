@@ -8,14 +8,14 @@ struct Task {
     struct promise_type {
         ::std::coroutine_error err;
 
-        Task get_return_object() {
+        Task get_return_object() noexcept {
             return Task{ std::coroutine_handle<promise_type>::from_promise(*this) };
         }
 
         std::suspend_always initial_suspend() noexcept { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
 
-        void return_void() {}
+        void return_void() noexcept {}
 
         void unhandled_herbception(::std::coroutine_error e) noexcept {
             std::cout << "promise_type::unhandled_exception() called\n";
