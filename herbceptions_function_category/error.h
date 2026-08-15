@@ -4,9 +4,7 @@ unfinished semantics
 */
 #include<type_traits>
 #include<cstddef>
-#if defined(__cpp_exceptions)
 #include<system_error>
-#endif
 #include<cstdint>
 
 
