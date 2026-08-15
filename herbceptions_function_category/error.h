@@ -64,7 +64,6 @@ concept __error_domain_has_domain_alias_type = requires()
     typename __T::domain_alias_type;
 };
 }
-
 // The error_domain customization point. It is declared but not defined: only
 // specializations exist. T need not be an enum — any type with an
 // error_domain<T> specialization can be thrown via `throw throws`.
@@ -112,7 +111,7 @@ public:
     constexpr bool do_equivalent(__Other __ec) const noexcept
     {
         using __other_error_domain_type = ::std::error_domain<__Other>;
-        if constexpr(::std::__details::__error_domain_has_domain_alias_type<__Other>)
+        if constexpr(::std::__details::__error_domain_has_domain_alias_type<__other_error_domain_type>)
         {
             using __domain_alias_type = typename __other_error_domain_type::domain_alias_type;
             return __domain_opaque->do_equivalent(
@@ -122,7 +121,7 @@ public:
         }
         else
         {
-            return __omain_opaque->do_equivalent(
+            return __domain_opaque->do_equivalent(
                 __code_opaque,
                 __other_error_domain_type::domain(),
                 __other_error_domain_type::code(__ec));
@@ -130,7 +129,7 @@ public:
     }
     constexpr ::std::errc do_to_errc() const noexcept
     {
-        return __domain_opaque->do_to_errc(code_opaque);
+        return __domain_opaque->do_to_errc(__code_opaque);
     }
 
     void do_throw_legacy_exception() const
@@ -146,7 +145,7 @@ private:
     // The {domain, code} payload, laid out as exactly two words so the value
     // flows through the {void*, size_t} ABI slot unchanged.
     ::std::error_domain_singleton const* __domain_opaque{};
-    ::std::size_t __domain_opaque{};
+    ::std::size_t __code_opaque{};
 
     // a magic function compiler will know how to construct it
     explicit constexpr error(void const* __domain, ::std::size_t __code) noexcept
@@ -217,16 +216,16 @@ requires (::std::is_class_v<__Other> || ::std::is_enum_v<__Other>)
 constexpr bool operator==(::std::error const& __ec, __Other const& __other) noexcept
 {
     using __other_error_domain_type = ::std::error_domain<__Other>;
-    if constexpr(::std::__details::__error_domain_has_domain_alias_type<__Other>)
+    if constexpr(::std::__details::__error_domain_has_domain_alias_type<__other_error_domain_type>)
     {
         using __other_domain_alias_type = typename __other_error_domain_type::domain_alias_type;
-        return __other_error_domain_type::code(__other) == __e.code() &&
-            __other_domain_alias_type::domain() == __e.domain();
+        return __other_error_domain_type::code(__other) == __ec.code() &&
+            __other_domain_alias_type::domain() == __ec.domain();
     }
     else
     {
-        return __other_error_domain_type::code(__other) == __e.code() &&
-            __other_error_domain_type::domain() == __e.domain();
+        return __other_error_domain_type::code(__other) == __ec.code() &&
+            __other_error_domain_type::domain() == __ec.domain();
     }
 
 }
