@@ -4,7 +4,9 @@ unfinished semantics
 */
 #include<type_traits>
 #include<cstddef>
+#if defined(__cpp_exceptions)
 #include<system_error>
+#endif
 #include<cstdint>
 
 
@@ -14,7 +16,7 @@ namespace std
 struct error;
 
 #if 0
-enum class dynamic_exception_abi
+enum class legacy_exception_abi
 {
 itanium=0,
 microsoft=1,
@@ -43,29 +45,31 @@ using error_reporter_io_cookie_function = void (*)(::std::error_reporter_encodin
 
 struct error_domain_singleton
 {
-    void (*do_cleanup)(::std::size_t) noexcept = 0;
-    bool (*do_equivalent)(::std::size_t, error_domain_singleton const*, ::std::size_t) noexcept = 0;
-    void (*do_name)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
-    void (*do_message)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = 0;
-    ::std::errc (*do_to_errc)(::std::size_t) noexcept = 0;
+    void (*do_cleanup)(::std::size_t) noexcept = nullptr;
+    bool (*do_equivalent)(::std::size_t, ::std::error_domain_singleton const*, ::std::size_t) noexcept = nullptr;
+    void (*do_name)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = nullptr;
+    void (*do_message)(::std::size_t, ::std::error_reporter_encoding, void*, ::std::error_reporter_io_cookie_function) noexcept = nullptr;
+    ::std::errc (*do_to_errc)(::std::size_t) noexcept = nullptr;
 #if 0
-// allow old style EH is a bad idea
-    void (*do_throw_dynamic_exception)(::std::size_t, ::std::dynamic_exception_abi) = 0;
+// allow old style EH is a bad idea because of ABI plus bloated to every singleton table
+    void (*do_throw_dynamic_exception)(::std::size_t, ::std::legacy_exception_abi) = nullptr;
 #endif
 };
 
-struct error_domain_tag_t
+namespace __details
 {
-explicit inline constexpr error_domain_tag_t() noexcept = default;
+template<typename __T>
+concept __error_domain_has_domain_alias_type = requires()
+{
+    typename __T::domain_alias_type;
+};
 }
-
-inline constexpr error_domain_tag_t error_domain_tag{};
 
 // The error_domain customization point. It is declared but not defined: only
 // specializations exist. T need not be an enum — any type with an
 // error_domain<T> specialization can be thrown via `throw throws`.
 template<typename T>
-struct error_domain;
+class error_domain;
 
 // std::error is defined by the standard library, but it is not a type users
 // can create, copy, or store. The compiler is the only manufacturer: for
@@ -87,57 +91,68 @@ public:
 
     constexpr ~error() noexcept
     {
-        auto docleanup{domain_opaque->do_cleanup};
-        if (docleanup)
+        auto __docleanup{__domain_opaque->do_cleanup};
+        if (__docleanup)
         {
-            docleanup(code_opaque);
+            __docleanup(__code_opaque);
         }
     }
 
     [[nodiscard]] constexpr ::std::error_domain_singleton const* domain() const noexcept
     {
-        return domain_opaque;
+        return __domain_opaque;
     }
     [[nodiscard]] constexpr ::std::size_t code() const noexcept
     {
-        return code_opaque;
+        return __code_opaque;
     }
 
-    template<typename T>
-    requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
-    constexpr bool do_equivalent(T ec) const noexcept
+    template<typename __Other>
+    requires (::std::is_class_v<__Other> || ::std::is_enum_v<__Other>)
+    constexpr bool do_equivalent(__Other __ec) const noexcept
     {
-        using other_error_domain_type = ::std::error_domain<T>;
-        return domain_opaque->do_equivalent(
-            code_opaque,
-            other_error_domain_type::domain(),
-            other_error_domain_type::code(ec));
+        using __other_error_domain_type = ::std::error_domain<__Other>;
+        if constexpr(::std::__details::__error_domain_has_domain_alias_type<__Other>)
+        {
+            using __domain_alias_type = typename __other_error_domain_type::domain_alias_type;
+            return __domain_opaque->do_equivalent(
+                __code_opaque,
+                __domain_alias_type::domain(),
+                __other_error_domain_type::code(__ec));
+        }
+        else
+        {
+            return __omain_opaque->do_equivalent(
+                __code_opaque,
+                __other_error_domain_type::domain(),
+                __other_error_domain_type::code(__ec));
+        }
     }
     constexpr ::std::errc do_to_errc() const noexcept
     {
-        return domain_opaque->do_to_errc(code_opaque);
+        return __domain_opaque->do_to_errc(code_opaque);
     }
-    constexpr void do_throw_dynamic_exception() const
-    {
+
+    void do_throw_legacy_exception() const
 #if defined(__cpp_exceptions)
+    {
         throw ::std::system_error(static_cast<int>(this->do_to_errc()),::std::generic_category());
-#else
-        ::std::abort();
-#endif
     }
+#else
+    = delete; // legacy exception disabled
+#endif
 
 private:
     // The {domain, code} payload, laid out as exactly two words so the value
     // flows through the {void*, size_t} ABI slot unchanged.
-    ::std::error_domain_singleton const* domain_opaque{};
-    ::std::size_t code_opaque{};
+    ::std::error_domain_singleton const* __domain_opaque{};
+    ::std::size_t __domain_opaque{};
 
     // a magic function compiler will know how to construct it
-    explicit constexpr error(void const* domain, ::std::size_t code) noexcept
-        : domain_opaque(static_cast<::std::error_domain_singleton const*>(domain)), code_opaque(code)
+    explicit constexpr error(void const* __domain, ::std::size_t __code) noexcept
+        : __domain_opaque(static_cast<::std::error_domain_singleton const*>(__domain)), __code_opaque(__code)
     {
     }
-
 };
 
 namespace error_domains
@@ -165,16 +180,18 @@ enum class win32_errc :
     file_not_found=2
 };
 
-struct win32_error_domain
+template<>
+class error_domain<::std::win32_errc>
 {
+public:
     using errc_type = ::std::win32_errc;
     static inline constexpr ::std::error_domain_singleton const* domain() noexcept
     {
         return ::std::error_domains::__cxa_error_domain_win32();
     }
-    static inline constexpr ::std::size_t code(errc_type e) noexcept
+    static inline constexpr ::std::size_t code(errc_type __e) noexcept
     {
-        return static_cast<::std::size_t>(static_cast<::std::uint_least32_t>(e));
+        return static_cast<::std::size_t>(static_cast<::std::uint_least32_t>(__e));
     }
 };
 
@@ -182,8 +199,6 @@ struct win32_error_domain
 this is much more flexible than the template specialization one. since different libraries may have the their implementation of errc win32_errc for example. This allow them
 to have only one category as long as the code function is a template to help constexpr and potentially reduce binary bloat.
 */
-inline constexpr win32_error_domain get_error_domain(::std::error_domain_tag_t, win32_error_domain/*does not matter whether it has reference or not, it simply for deduction*/) noexcept
-{}
 
 /*
 pesudo throws should do
@@ -197,20 +212,30 @@ inline constexpr void pesudo_throws(T x)
 
 */
 
-template<typename T>
-requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
-constexpr bool operator==(::std::error const& e, T t) noexcept
+template<typename __Other>
+requires (::std::is_class_v<__Other> || ::std::is_enum_v<__Other>)
+constexpr bool operator==(::std::error const& __ec, __Other const& __other) noexcept
 {
-    using error_type = typename ::std::error_domain<T>;
-    return error_type::code(t) == e.code() &&
-        error_type::domain() == e.domain();
+    using __other_error_domain_type = ::std::error_domain<__Other>;
+    if constexpr(::std::__details::__error_domain_has_domain_alias_type<__Other>)
+    {
+        using __other_domain_alias_type = typename __other_error_domain_type::domain_alias_type;
+        return __other_error_domain_type::code(__other) == __e.code() &&
+            __other_domain_alias_type::domain() == __e.domain();
+    }
+    else
+    {
+        return __other_error_domain_type::code(__other) == __e.code() &&
+            __other_error_domain_type::domain() == __e.domain();
+    }
+
 }
 
-template<typename T>
-requires (::std::is_class_v<T> || ::std::is_enum_v<T>)
-constexpr bool operator==(T t, ::std::error const& e) noexcept
+template<typename __Other>
+requires (::std::is_class_v<__Other> || ::std::is_enum_v<__Other>)
+constexpr bool operator==(__Other const __other, ::std::error const& __e) noexcept
 {
-    return e==t;
+    return __e==__other;
 }
 
 }
